@@ -18,6 +18,7 @@ The task involves:
 4. **Insights and Conclusion**: Interpreting model results and providing actionable insights.
 ---
 ## **Repository Structure**
+```
 CreditRiskModelling/
 ├── data/                   # Contains synthetic dataset
 │   └── synthetic_credit_data.csv
@@ -32,8 +33,9 @@ CreditRiskModelling/
 │   └── feature_importance.png
 ├── README.md               # This file
 └── requirements.txt        # Python dependencies
+```
 ## **Installation**
 ## **Usage**
-## **PMethodology**
+## **Methodology**
 ## **Results**
 ## **Conclusion**
