@@ -1,5 +1,5 @@
 # CreditRiskModelling
-This repository contains the solution to the Zeller Credit Data Analyst technical task. It includes synthetic data generation, feature engineering, credit risk modeling, and actionable insights derived from the models.
+#### This repository contains the solution to the Z***** Credit Data Analyst technical task. It includes synthetic data generation, feature engineering, credit risk modeling, and actionable insights derived from the models.
 ---
 ## **Table of Contents**
 1. [Project Overview](#project-overview)
