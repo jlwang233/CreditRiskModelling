@@ -3,10 +3,10 @@ import numpy as np
 import scorecardpy as sc
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
-from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import RFE
 from xgboost import XGBClassifier
+from sklearn.preprocessing import StandardScaler
 from scripts.synthetic_data_creation import SyntheticDataCreator
 import warnings
 
@@ -25,14 +25,15 @@ class FeatureEngineering:
             reference_date (pd.Timestamp): The reference date for recency calculations.
         """
         self.df = df
+        
         self.train_idx = []
         self.test_idx = []
         self.df_lr = pd.DataFrame()
         self.df_xgb = pd.DataFrame()
         self.df_ann = pd.DataFrame()
+        
         self.reference_date = reference_date
         self.derived_features = []
-
         self.selected_col_iv = []
         self.bins = {}
         self.break_adj = {}
@@ -223,10 +224,10 @@ class FeatureEngineering:
         Returns:
             list: List of selected features.
         """
-        train_woe = sc.woebin_ply(self.df_lr[self.selected_col_iv], self.bins)
+        self.df_lr = sc.woebin_ply(self.df_lr[self.selected_col_iv], self.bins)
 
-        X = train_woe.loc[self.train_idx, train_woe.columns != "default"]
-        y = train_woe.loc[self.train_idx, "default"]
+        X = self.df_lr.loc[self.train_idx, self.df_lr.columns != "default"]
+        y = self.df_lr.loc[self.train_idx, "default"]
 
         included = save_list
         while True:
@@ -244,11 +245,9 @@ class FeatureEngineering:
                 ).fit()
                 new_pval[new_column] = model.pvalues[new_column]
             best_pval = new_pval.min()
-
-            print("new_pval:", new_pval)
-            print("best_pval:", best_pval)
-            print("threshold_in:", threshold_in)
-
+            # print("new_pval:", new_pval)
+            # print("best_pval:", best_pval)
+            # print("threshold_in:", threshold_in)
             if best_pval < threshold_in:
                 best_feature = new_pval.idxmin()
                 included.append(best_feature)
@@ -273,29 +272,30 @@ class FeatureEngineering:
             if not changed:
                 break
 
-        self.selected_col_lr = included.append("default")
+        self.selected_col_lr = included+["default"]
+        self.df_lr = self.df_lr[self.selected_col_lr]
         return self.selected_col_lr
 
     def xgb_transform_features(self):
         """Perform feature engineering for XGBoost Model."""
         # make y numeric
+        self.df_xgb=self.df
         self.df_xgb["default"] = self.df_xgb["default"].astype(int)
-        
+
         # One-hot encoding for categorical features
-        cat_columns = self.df.select_dtypes(include=["category", "object"]).columns
-        cat_columns = cat_columns.drop("default")
-        self.df_xgb = pd.get_dummies(self.df, columns=cat_columns)
+        self.df_xgb = pd.get_dummies(
+            self.df_xgb,
+            columns=self.df_xgb.select_dtypes(include=["category", "object"]).columns,
+        )
 
         # check for missing values, although we don't currently have due to auto-generated data
         self.df_xgb = self.df_xgb.fillna(-99)
-
-
 
         return self.df_xgb
 
     def xgb_select_features(self, topn=40):
         """Select top n features for XGBoost Model."""
-        
+
         X_train = self.df_xgb.loc[self.train_idx, self.df_xgb.columns != "default"]
         y_train = self.df_xgb.loc[self.train_idx, "default"]
 
@@ -310,46 +310,56 @@ class FeatureEngineering:
         print("Feature Importance of remaining features are:")
         print(feature_importance.sort_values(ascending=False))
 
-        self.selected_col_xgb = list(included).append("default")
+        self.selected_col_xgb = list(included)+["default"]
+        self.df_xgb = self.df_xgb[self.selected_col_xgb]
         return self.selected_col_xgb
 
     def ann_transform_features(self):
         """Perform feature engineering for ANN Model."""
         self.df_ann = self.df
-        
+
         # make y numeric
         self.df_ann["default"] = self.df_ann["default"].astype(int)
-        
+
         # One-hot encoding for categorical features
         self.df_ann = pd.get_dummies(
-            self.df,
-            columns=self.df.select_dtypes(include=["category", "object"]).columns,
+            self.df_ann,
+            columns=self.df_ann.select_dtypes(include=["category", "object"]).columns,
         )
 
         # check for missing values, although we don't currently have due to auto-generated data
         self.df_ann = self.df_ann.fillna(-99)
-        
 
         # ANN is sensitive to scale of input features so normalize data
         scaler = StandardScaler()
-        transformed_df=self.df_ann.loc[:,self.df_ann.columns!='default']
-        
+        transformed_df = self.df_ann.loc[:, self.df_ann.columns != "default"]
+
         fitted_ann = scaler.fit_transform(transformed_df)
-        
-        self.df_ann = pd.concat([pd.DataFrame(fitted_ann,columns=transformed_df.columns), self.df_ann.loc[:,'default']],axis=1)
+
+        self.df_ann = pd.concat(
+            [
+                pd.DataFrame(fitted_ann, columns=transformed_df.columns),
+                self.df_ann.loc[:, "default"],
+            ],
+            axis=1,
+        )
 
         return self.df_ann
-    
-    def ann_select_features(self,corr_threshold=0.8,topn=40):
+
+    def ann_select_features(self, corr_threshold=0.8, topn=40):
         """Select features for ANN Model."""
         # remove those with high correlation
         corr_matrix = self.df_ann.corr().abs()
         upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
-        to_drop = [column for column in upper.columns if column!='default' and any(upper[column] > corr_threshold) ]
+        to_drop = [
+            column
+            for column in upper.columns
+            if column != "default" and any(upper[column] > corr_threshold)
+        ]
         self.df_ann.drop(to_drop, axis=1, inplace=True)
-        
+
         # select top n features based on xgb classifer feature importance
-        
+
         X_train = self.df_ann.loc[self.train_idx, self.df_ann.columns != "default"]
         y_train = self.df_ann.loc[self.train_idx, "default"]
 
@@ -363,9 +373,11 @@ class FeatureEngineering:
         print("Feature Importance of remaining features are:")
         print(feature_importance.sort_values(ascending=False))
 
-        self.selected_col_ann = list(included).append("default")
+        self.selected_col_ann = list(included)+["default"]
+        self.df_ann=self.df_ann[self.selected_col_ann]
         return self.selected_col_ann
-    
+
+
 if __name__ == "__main__":
     # Step 1: Load your raw dataset
     sdc = SyntheticDataCreator()
@@ -398,4 +410,3 @@ if __name__ == "__main__":
         print("Selected features for ANN:", selected_features)
     else:
         print("Invalid model type. Please choose LR, XGB, or ANN.")
-

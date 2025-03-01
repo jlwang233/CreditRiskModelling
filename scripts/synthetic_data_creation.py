@@ -1,10 +1,11 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime
-import os
+import warnings
+warnings.filterwarnings("ignore")
 
 
-class SyntheticDataCreator:
+class SyntheticDataCreator():
     """A class to generate synthetic financial and transactional data with realistic relationships."""
 
     def __init__(self, n_records=10000, reference_date="2024-10-01", seed=23):
