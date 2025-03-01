@@ -31,7 +31,6 @@ CreditRiskModelling/
 │   └── model_training.py
 ├── reports/                # Assessment report and visualizations
 │   └── assessment_report.pdf
-│   └── feature_importance.png
 ├── models/                 # Model Files
 │   └── best_lr_model.pkl
 │   └── best_xgb_model.pkl
