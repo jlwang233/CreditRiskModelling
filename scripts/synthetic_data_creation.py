@@ -34,17 +34,25 @@ class SyntheticDataCreator:
         
     def generate_platform_engagement(self):
         """Generate platform engagement data."""
-        self.df['plat_login_cnt_t1m'] = np.random.randint(1, 50, size=self.n_records)  # Logins to Zeller’s platform in last 1 month
         self.df['plat_customer_support_cnt_t3m'] = np.random.choice([0, 1, 2, 3], size=self.n_records, p=[0.7, 0.2, 0.08, 0.02])  # Customer support interactions in last 3 months
         self.df['plat_dashboard_cnt_t3m'] = np.random.choice([0, 1, 2, 3], size=self.n_records, p=[0.6, 0.3, 0.08, 0.02])  # Dashboard usage in last 3 months
         self.df['plat_terminal_flag'] = np.random.choice([0, 1], size=self.n_records, p=[0.3, 0.7])  # Whether Zeller terminal is owned
         self.df['plat_trsct_acct_flag'] = np.random.choice([0, 1], size=self.n_records, p=[0.2, 0.8])  # Whether Zeller transaction account is owned
         self.df['plat_saving_acct_flag'] = np.random.choice([0, 1], size=self.n_records, p=[0.5, 0.5])  # Whether Zeller savings account is owned
+        self.df['plat_login_cnt_t1m'] = np.random.randint(1, 15, size=self.n_records) + \
+            self.df['plat_customer_support_cnt_t3m']+ self.df['plat_dashboard_cnt_t3m']+ \
+                self.df['plat_trsct_acct_flag']*np.random.randint(1, 5, size=self.n_records)  # Logins to Zeller’s platform in last 1 month
+
         
     def generate_finance_data(self):
         """Generate finance-related data with realistic relationships."""
-        self.df['fin_revenue'] = np.random.randint(50000, 1000000, size=self.n_records)  # Total revenue last financial year          
-        self.df['fin_profit'] = self.df['fin_revenue'] * np.random.uniform(0.05, 0.25, size=self.n_records) # Calculate profit based on revenue (net profit margin 5% to 25%)       
+        revenue_base = {
+            "small": 50000,
+            "medium": 300000,
+            "large": 1000000
+        }
+        self.df['fin_revenue'] = self.df['business_size'].map(revenue_base) * np.random.uniform(0.8,1.2,size=self.n_records)  # Total revenue last financial year          
+        self.df['fin_profit'] = self.df['fin_revenue'] * np.random.uniform(0.05, 0.3, size=self.n_records) # Calculate profit based on revenue (net profit margin 5% to 30%)       
         self.df['fin_assets'] = self.df['fin_revenue'] * np.random.uniform(2, 10, size=self.n_records)  # 2x to 10x annual revenue
         self.df['fin_liabilities'] = self.df['fin_assets'] * np.random.uniform(0.1, 0.5, size=self.n_records)  # 10% to 50% of assets
         
@@ -55,7 +63,12 @@ class SyntheticDataCreator:
         self.df['tran_vol_t3m'] = self.df['tran_vol_t1m'] * np.random.uniform(1, 6, size=self.n_records)  # 1x to 6x of monthly volume
         
         # Transaction counts scaled by business size
-        self.df['tran_cnt_t1m'] = np.random.randint(10, 200, size=self.n_records)  # 10 to 200 transactions per month
+        cnt_base = {
+            "small": 100,
+            "medium": 500,
+            "large": 1000
+        }
+        self.df['tran_cnt_t1m'] = self.df['business_size'].map(cnt_base)* np.random.uniform(0.5,1.5,size=self.n_records).astype(int) 
         self.df['tran_cnt_t3m'] = self.df['tran_cnt_t1m'] * np.random.uniform(1, 6, size=self.n_records)  # 1x to 6x monthly count
         
         # Cash inflow and outflow
@@ -64,58 +77,31 @@ class SyntheticDataCreator:
         
     def generate_credit_history(self):
         """Generate credit history data."""
-        self.df['credit_score'] = np.random.randint(300, 1000, size=self.n_records)  # Business credit score (300-1000)
+        credit_score_base = 500  # Minimum credit score
+        credit_score_cap = 1000  # Range of credit score (300 to 1000)
+        
+        self.df['credit_score'] = credit_score_base + (self.df['fin_profit'] / self.df['fin_profit'].max()) * (credit_score_cap-credit_score_base) * np.random.uniform(0.8,1.2,size=self.n_records)
+        self.df['credit_score'] = self.df['credit_score'].clip(credit_score_base, credit_score_cap)  # Ensure credit score stays within bounds
+        
         self.df['credit_lines_cnt'] = np.random.randint(1, 10, size=self.n_records)  # Number of active credit lines
         self.df['credit_current_amt'] = self.df['credit_lines_cnt'] * np.random.randint(1000, 100000, size=self.n_records)  # Total outstanding credit amount
         
-        self.df['credit_default_cnt_t12m'] = np.random.choice([0, 1, 2], size=self.n_records, p=[0.8, 0.15, 0.05])  # Defaults in last 12 months
+        self.df['credit_default_cnt_t12m'] = np.random.choice([0, 1], size=self.n_records, p=[0.95, 0.05])  # Defaults in last 12 months yet still available for loans
         self.df['credit_inquiry_cnt_t3m'] = np.random.choice([0, 1, 2, 3], size=self.n_records, p=[0.6, 0.3, 0.08, 0.02])  # Credit inquiries in last 3 months
         self.df['credit_inquiry_cnt_t12m'] = self.df['credit_inquiry_cnt_t3m'] * np.random.uniform(1, 4, size=self.n_records).astype(int)  # 1x to 4x of 3-month inquiries
         self.df['credit_court_cnt_t12m'] = np.random.choice([0, 1, 2], size=self.n_records, p=[0.8, 0.15, 0.05])  # Court judgments in last 12 months
         
-    # def generate_loan_data(self):
-    #     """Generate loan-related data with constraints."""
-    #     reference_date_series = pd.Series([self.reference_date] * self.n_records)
-
-    #     self.df['loan_amount'] = np.random.randint(1000, 50000, size=self.n_records)  # Total loan amount outstanding
-    #     self.df['loan_utilization_amount'] = self.df['loan_amount']* np.round(np.random.uniform(0.1, 0.9, size=self.n_records), 2)  # Proportion of available credit being used
-    #     self.df['loan_late_repayment_cnt'] = np.random.choice([0, 1, 2], size=self.n_records, p=[0.8, 0.15, 0.05])  # Late repayments within 90 days
-        
-    #     # Loan start date must be before reference_date
-    #     self.df['loan_start_date'] = reference_date_series - pd.DateOffset(months=np.random.randint(1,12 , size=self.n_records))
-    #     # Loan start date must be after business start date
-    #     self.df['loan_start_date'] = np.where(
-    #         self.df['loan_start_date'] < reference_date_series  - pd.DateOffset(years=self.df['business_time']),
-    #         reference_date_series  - pd.DateOffset(years=self.df['business_time']),
-    #         self.df['loan_start_date']
-    #     )
-    #     # Loan maturity date after reference_date
-    #     self.df['loan_maturity_date'] = reference_date_series  + pd.DateOffset(months=np.random.randint(1, 24, size=self.n_records))
-    #     self.df['loan_interest_rate'] = np.round(np.random.uniform(0.05, 0.15, size=self.n_records), 2)  # Interest rate applied to the loan
-        
-    #     # Generate loan_last_late_date based on late repayment counts
-    #     self.df['loan_last_late_date'] = np.where(
-    #         self.df['loan_late_repayment_cnt'] > 0,
-    #         self.df['loan_start_date'] + pd.DateOffset(days=np.random.randint(1, 365, size=self.n_records)),
-    #         pd.NaT  # Null if no late repayments
-    #     )
-    #     # last_late_Date (if any) should be before last payment date
-    #     self.df['loan_last_late_date'] = np.where(
-    #         self.df['loan_last_late_date'] > reference_date_series  - pd.DateOffset(months=1),
-    #         reference_date_series  - pd.DateOffset(months=1),
-    #         self.df['loan_last_late_date']
-    #     )
     def generate_loan_data(self):
         """Generate loan-related data with constraints."""
+        
         self.df['loan_amount'] = np.random.randint(1000, 50000, size=self.n_records)  # Total loan amount outstanding
-        self.df['loan_utilization_amount'] = self.df['loan_amount']*np.round(np.random.uniform(0.1, 0.9, size=self.n_records), 2)  # Proportion of available credit being used
         self.df['loan_late_repayment_cnt'] = np.random.choice([0, 1, 2], size=self.n_records, p=[0.8, 0.15, 0.05])  # Late repayments(late but not defaulted)
-        self.df['loan_interest_rate'] = np.round(np.random.uniform(0.05, 0.15, size=self.n_records), 2)  # Interest rate applied to the loan
+        self.df['loan_interest_rate'] = np.round(np.random.uniform(0.10, 0.20, size=self.n_records), 2)  # Interest rate applied to the loan
 
         # Loan start date 
         ## must be before reference_date
         random_months_in_term = np.random.randint(1, 12, size=self.n_records)  # Random number of months (1-11)
-        self.df['loan_start_date'] = self.reference_date - pd.to_timedelta(random_months_in_term, unit='m')  # Convert months to days
+        self.df['loan_start_date'] = self.reference_date - pd.to_timedelta(random_months_in_term, unit='m')  
         ## must be after business start date
         business_start_date_series = self.reference_date - pd.to_timedelta(self.df['business_time']*12, unit='m')
         self.df['loan_start_date'] = np.where(
@@ -128,7 +114,13 @@ class SyntheticDataCreator:
         ## must be after reference_date
         random_months_maturity = np.random.choice([12, 24, 36, 48], size=self.n_records, p=[0.25, 0.25, 0.25,0.25]) 
         self.df['loan_maturity_date'] = self.reference_date + pd.to_timedelta(random_months_maturity-random_months_in_term, unit='m')
-        
+        # loan_utilization amount
+        self.df['loan_utilization_amount'] = self.df['loan_amount'] * (random_months_in_term/random_months_maturity)* np.round(np.random.uniform(0.5, 1.5, size=self.n_records), 2)  # Proportion of available credit being used
+        self.df['loan_utilization_amount'] = np.where(
+            self.df['loan_utilization_amount'] > self.df['loan_amount'] ,
+            self.df['loan_amount'] ,
+            self.df['loan_utilization_amount']
+        )
         # loan_last_late_date 
         ## based on late repayment counts
         self.df['loan_last_late_date'] = np.where(
@@ -144,6 +136,12 @@ class SyntheticDataCreator:
             self.reference_date - pd.to_timedelta(1, unit='m'),
             self.df['loan_last_late_date']
         )
+        
+        # Generate Default
+        default_prob = (1 - (self.df['credit_score']-500)/1000) * self.df['loan_interest_rate'] * np.random.uniform(0.8, 1.2, size=self.n_records)
+        threshold = np.percentile(default_prob, 80)  # 80th percentile threshold
+        self.df['default'] = (default_prob >= threshold).astype(int).astype(str)
+        
 
         
     def compile_data(self):
@@ -155,7 +153,7 @@ class SyntheticDataCreator:
                 
         # Round all numeric data to integers except loan_interest_rate
         numeric_columns = self.df.select_dtypes(include=[np.number]).columns
-        numeric_columns = numeric_columns.drop('loan_interest_rate', errors='ignore')  # Exclude loan_interest_rate
+        numeric_columns = numeric_columns.drop(['default','loan_interest_rate'], errors='ignore')  # Exclude loan_interest_rate
         self.df[numeric_columns] = self.df[numeric_columns].round().astype(int)
 
         
@@ -169,6 +167,9 @@ class SyntheticDataCreator:
         self.generate_transaction_data()
         self.generate_credit_history()
         self.generate_loan_data()
+        self.compile_data().to_csv("data/synthetic_credit_data.csv", index=False)
+        print("\nData saved to /data/synthetic_credit_data.csv")
+        
         return self.compile_data()
     
 # Example usage:
@@ -179,7 +180,4 @@ if __name__ == "__main__":
     print("\nData Preview:")
     print(df.head())
     
-    os.chdir('/Users/wjl/Documents/GitHub/CreditRiskModelling/')
-    df.to_csv("data/synthetic_credit_data.csv", index=False)
-    
-    print("\nData saved to /data/synthetic_credit_data.csv")
+
