@@ -226,16 +226,33 @@ class SyntheticDataCreator():
             self.reference_date - pd.to_timedelta(1, unit="m"),
             self.df["loan_last_late_date"],
         )
-
-        # Generate Default
+    def generate_default(self):
+        """Generate default variable based on multiple factors."""
+        # Step 1: Normalize key features to ensure they contribute equally
+        credit_score_norm = (self.df["credit_score"] - 500) / 500  # Normalize to [0, 1]
+        loan_interest_rate_norm = (self.df["loan_interest_rate"] - 0.10) / 0.10  # Normalize to [0, 1]
+        profit_margin_norm = (self.df["fin_profit"] / self.df["fin_revenue"])  # Already in [0, 1]
+        loan_utilization_norm = self.df["loan_utilization_amount"] / self.df["loan_amount"]  # Already in [0, 1]
+        # Step 2: Assign weights to each factor
+        weights = {
+            "credit_score": 0.4,  # Higher credit score reduces default probability
+            "loan_interest_rate": 0.2,  # Higher interest rate increases default probability
+            "profit_margin": 0.2,  # Lower profit margin increases default probability
+            "loan_utilization": 0.2,  # Higher utilization increases default probability
+        }
+        # Step 3: Calculate default probability
         default_prob = (
-            (1 - (self.df["credit_score"] - 500) / 1000)
-            * self.df["loan_interest_rate"]
-            * np.random.uniform(0.5, 1.5, size=self.n_records)
+            (1 - credit_score_norm) * weights["credit_score"] +  # Lower credit score increases default
+            loan_interest_rate_norm * weights["loan_interest_rate"] +  # Higher interest rate increases default
+            (1 - profit_margin_norm) * weights["profit_margin"] +  # Lower profit margin increases default
+            loan_utilization_norm * weights["loan_utilization"]  # Higher utilization increases default
         )
-        threshold = np.percentile(default_prob, 80)  # 80th percentile threshold
+        # Step 4: Add some randomness to avoid deterministic behavior
+        default_prob = default_prob * np.random.uniform(0.8, 1.2, size=self.n_records)
+        # Step 5: Set default threshold (e.g., 80th percentile)
+        threshold = np.percentile(default_prob, 80)
         self.df["default"] = (default_prob >= threshold).astype(int).astype(str)
-
+       
     def compile_data(self):
         """Compile all data into a DataFrame and ensure proper data types."""
         # Ensure dates are in datetime format
@@ -259,6 +276,7 @@ class SyntheticDataCreator():
         self.generate_transaction_data()
         self.generate_credit_history()
         self.generate_loan_data()
+        self.generate_default()
         self.compile_data().to_csv("data/synthetic_credit_data.csv", index=False)
         print("\nData saved to /data/synthetic_credit_data.csv")
 

@@ -3,10 +3,8 @@ import numpy as np
 import scorecardpy as sc
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
-from sklearn.model_selection import GridSearchCV, train_test_split
-from sklearn.metrics import roc_auc_score, accuracy_score
+from sklearn.model_selection import GridSearchCV
 from sklearn.inspection import permutation_importance
-
 from xgboost import XGBClassifier
 import matplotlib.pyplot as plt
 import pickle
@@ -94,7 +92,7 @@ class ModelTraining:
         if model_type == "XGB":
             X_train, y_train = self.X_train_xgb, self.y_train_xgb
             X_test, y_test = self.X_test_xgb, self.y_test_xgb
-            model = XGBClassifier(objective="binary:logistic", n_jobs=-1, random_state=42)
+            model = XGBClassifier(objective="binary:logistic", n_jobs=-1, random_state=seed)
         elif model_type == "LR":
             X_train, y_train = self.X_train_lr, self.y_train_lr
             X_test, y_test = self.X_test_lr, self.y_test_lr
@@ -102,7 +100,7 @@ class ModelTraining:
         elif model_type == "ANN":
             X_train, y_train = self.X_train_ann, self.y_train_ann
             X_test, y_test = self.X_test_ann, self.y_test_ann
-            model = MLPClassifier(random_state=42)
+            model = MLPClassifier(random_state=seed)
         else:
             raise ValueError("Invalid model_type. Use 'XGB', 'LR', or 'ANN'.")
         # Grid search for hyperparameter tuning
@@ -189,7 +187,7 @@ class ModelTraining:
                 
             elif model_type == "ANN":
                 # Feature importance for ANN (using coefficients)
-                result = permutation_importance(self.model_ann, self.X_train_ann, self.y_train_ann, n_repeats=10, random_state=23)
+                result = permutation_importance(self.model_ann, self.X_train_ann, self.y_train_ann, n_repeats=10, random_state=seed)
                 feature_importance = pd.Series(result.importances_mean, index=self.X_train_ann.columns).sort_values(ascending=False)
                 feature_importance.plot(kind="bar", title="Permutation Importances for ANN")
                 y_label="Permutation Importance"
