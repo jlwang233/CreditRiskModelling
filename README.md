@@ -22,6 +22,7 @@ The task involves:
 CreditRiskModelling/
 ├── data/                   # Contains synthetic dataset
 │   └── synthetic_credit_data.csv
+│   └── train and test data
 ├── notebooks/              # Jupyter notebooks for analysis
 │   └── credit_risk_modeling.ipynb
 ├── scripts/                # Python scripts for data generation and modeling
@@ -30,6 +31,10 @@ CreditRiskModelling/
 │   └── model_training.py
 ├── reports/                # Assessment report and visualizations
 │   └── assessment_report.pdf
+├── models/                 # Model Files
+│   └── best_lr_model.pkl
+│   └── best_xgb_model.pkl
+│   └── best_xgb_model.pkl
 │   └── feature_importance.png
 ├── README.md               # This file
 └── requirements.txt        # Python dependencies
