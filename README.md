@@ -1,5 +1,5 @@
 # CreditRiskModelling
-#### This repository contains the solution to the Z***** Credit Data Analyst technical task. It includes synthetic data generation, feature engineering, model training, and evaluation of the models.
+#### This repository showcase Credit Data Mdelling with 3 Machine learning Algorithms. It includes synthetic data generation, feature engineering, model training, and evaluation of the models.
 ---
 ## **Table of Contents**
 1. [Project Overview](#project-overview)
