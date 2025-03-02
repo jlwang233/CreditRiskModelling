@@ -11,14 +11,14 @@ from scripts.synthetic_data_creation import SyntheticDataCreator
 import warnings
 
 warnings.filterwarnings("ignore")
-
+seed=23
 
 class FeatureEngineering:
     """A comprehensive class for feature engineering using scorecardpy.
     This class handles feature derivation, WoE binning, and feature selection.
     """
 
-    def __init__(self, df, reference_date):
+    def __init__(self, df, reference_date='2024-10-01'):
         """Initialize the FeatureEngineering class.
         Args:
             df (pd.DataFrame): The DataFrame containing raw features.
@@ -31,7 +31,7 @@ class FeatureEngineering:
         self.df_lr = pd.DataFrame()
         self.df_xgb = pd.DataFrame()
         self.df_ann = pd.DataFrame()
-        
+        np.random.seed(seed)
         self.reference_date = reference_date
         self.derived_features = []
         self.selected_col_iv = []
