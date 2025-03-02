@@ -12,9 +12,9 @@
 ---
 ## **Project Overview**
 The task involves:
-1. **Synthetic Data Creation**: Generating a dataset with 10,000 rows and 10+ features relevant to credit risk assessment.
-2. **Feature Engineering**: Transforming and aggregating features to improve model performance.
-3. **Machine Learning Model Development**: Building and evaluating three credit risk models.
+1. **Synthetic Data Creation**: Generating a dataset with 10,000 rows and 36 features.
+2. **Feature Engineering**: Deriving, Transforming and Selecting features to improve model performance.
+3. **Machine Learning Model Development**: Building and evaluating three credit risk models (LR, XGB, ANN).
 4. **Insights and Conclusion**: Interpreting model results and providing actionable insights.
 ---
 ## **Repository Structure**
